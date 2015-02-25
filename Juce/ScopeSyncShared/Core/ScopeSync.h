@@ -172,6 +172,8 @@ public:
     void           hideAddConfigurationWindow();
     void           actionListenerCallback(const String& message) override;
 
+	void           reinitialiseScopeParameters() { initialiseScopeParameters = true; }
+
 private:
 
     /* ========================== Initialisation ============================== */

@@ -100,13 +100,14 @@ ScopeFX::~ScopeFX()
    
 void ScopeFX::initValues()
 {
-	positionX          = initPositionX;
-	positionY          = initPositionY;
-    requestWindowShow  = false;
-    windowShown        = false;
-    windowHandlerDelay = 0;
-    configurationUID   = 0;
-	oscUID             = 0;
+	positionX           = initPositionX;
+	positionY           = initPositionY;
+    requestWindowShow   = false;
+    windowShown         = false;
+    windowHandlerDelay  = 0;
+    configurationUID    = 0;
+	oscUID              = 0;
+	tmpPerfModeOffCount = 0;
 }
 
 void ScopeFX::timerCallback()
@@ -196,13 +197,23 @@ void ScopeFX::hideWindow()
 int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
                    PadData*  asyncOut, PadData* /*syncOut*/)
 {
+	// If the Preset Name has changed, set Performance Mode off for this async cycle
+	String newPresetName = asyncIn[INPAD_PRESET_NAME]->str;
+	
+	if (newPresetName != presetName)
+	{
+		presetName = newPresetName;
+		ScopeSyncApplication::setPerformanceMode(0);
+		tmpPerfModeOffCount = 5;
+	}
+
 	int* parameterArray = (int*)asyncIn[INPAD_PARAMS]->itg;
     int* localArray     = (int*)asyncIn[INPAD_LOCALS]->itg;
 
 	int asyncValues[ScopeSyncApplication::numScopeSyncParameters + ScopeSyncApplication::numScopeLocalParameters];
 
 	// Grab ScopeSync values from input
-	if (parameterArray != nullptr)
+	if (tmpPerfModeOffCount == 0 && parameterArray != nullptr)
 	{
 		for (int i = 0; i < ScopeSyncApplication::numScopeSyncParameters; i++)
 			asyncValues[i] = parameterArray[i];
@@ -256,13 +267,43 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
         oscUID = newOSCUID;
     }
 
-	// Switch Performance Mode on/off
-	int newPMSetting = asyncIn[INPAD_PERFORMANCE_MODE]->itg;
-
-	if (newPMSetting != performanceMode)
+	if (tmpPerfModeOffCount > 1)
 	{
-		ScopeSyncApplication::setPerformanceMode(newPMSetting);
-		performanceMode = newPMSetting;
+		DBG("ScopeFX::async POINT 1, performance mode set to: " + String(ScopeSyncApplication::getPerformanceMode()));
+
+		String asyncValueString = String(asyncValues[0]);
+
+		for (int i = 1; i < 128; i++)
+			asyncValueString += ", " + String(asyncValues[i]);
+
+		DBG("ScopeFX::async POINT 1, input values: " + asyncValueString);
+
+		// Leave the performance mode alone for now
+		asyncOut[OUTPAD_PERFORMANCE_MODE].itg = performanceMode;
+		tmpPerfModeOffCount--;
+	}
+	else if (tmpPerfModeOffCount == 1)
+	{
+		// Set performance mode back to what it was before
+		ScopeSyncApplication::setPerformanceMode(performanceMode);
+		asyncOut[OUTPAD_PERFORMANCE_MODE].itg = performanceMode;
+		tmpPerfModeOffCount--;
+		scopeSync->reinitialiseScopeParameters();
+		DBG("ScopeFX::async POINT 2, performance mode set to: " + String(ScopeSyncApplication::getPerformanceMode()));
+	}
+	else
+	{
+		// Switch Performance Mode on/off
+		int newPMSetting = asyncIn[INPAD_PERFORMANCE_MODE]->itg;
+		
+		if (newPMSetting != performanceMode)
+		{
+			ScopeSyncApplication::setPerformanceMode(newPMSetting);
+			performanceMode = newPMSetting;
+			DBG("ScopeFX::async POINT 3, performance mode set to: " + String(ScopeSyncApplication::getPerformanceMode()));
+		}
+
+		asyncOut[OUTPAD_PERFORMANCE_MODE].itg = (scopeSync  != nullptr) ? ScopeSyncApplication::getPerformanceMode() : performanceMode;
 	}
 	
 	// Handle window position updates
@@ -273,7 +314,6 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
     asyncOut[OUTPAD_X].itg                = (scopeFXGUI != nullptr) ? scopeFXGUI->getScreenPosition().getX()     : positionX;
     asyncOut[OUTPAD_Y].itg                = (scopeFXGUI != nullptr) ? scopeFXGUI->getScreenPosition().getY()     : positionY;
     asyncOut[OUTPAD_CONFIGUID].itg        = (scopeSync  != nullptr) ? scopeSync->getConfigurationUID()           : configurationUID;
-	asyncOut[OUTPAD_PERFORMANCE_MODE].itg = (scopeSync  != nullptr) ? ScopeSyncApplication::getPerformanceMode() : performanceMode;
 	asyncOut[OUTPAD_OSCUID].itg           = (scopeSync  != nullptr) ? scopeSync->getOSCUID()                     : oscUID;
       
     return 0;

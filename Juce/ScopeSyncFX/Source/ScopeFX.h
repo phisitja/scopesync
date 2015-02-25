@@ -86,14 +86,16 @@ private:
     static const int timerFrequency;
     
     // Async values that are handled directly by ScopeFX
-    int positionX;        // Horizontal location of window
-	int positionY;        // Vertical location of window
-	int configurationUID; // UID of configuration file
-	int oscUID;           // OSC Identifier for this instance
+    int    positionX;        // Horizontal location of window
+	int    positionY;        // Vertical location of window
+	int    configurationUID; // UID of configuration file
+	int    oscUID;           // OSC Identifier for this instance
+	String presetName;       // Name of Preset
 	
-	int  performanceMode;   // Flag to indicate that performance mode is on
-	bool requestWindowShow; // Flag to indicate that window should be shown
-    bool windowShown;       // Flag to indicate that window is currently being shown
+	int  tmpPerfModeOffCount; // Disables Performance Mode for a few cycles
+	int  performanceMode;     // Flag to indicate that performance mode is on
+	bool requestWindowShow;   // Flag to indicate that window should be shown
+    bool windowShown;         // Flag to indicate that window is currently being shown
     
     int windowHandlerDelay; // Hack to avoid feedback loops when moving window around in Scope
 

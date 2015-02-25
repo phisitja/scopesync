@@ -67,6 +67,7 @@ void ScopeSyncAsync::handleUpdate(int* asyncValues, bool initialise)
         
 			if (newValue != currentValues[i] || initialise)
 			{
+				DBG("ScopeSyncAsync::handleUpdate value " + String(i) + " changed to: " + String(newValue));
 				// Value has changed, or we're initialising, so let's put it in the set to pass back to
 				// the ScopeSync system
 				asyncUpdates.set(i, newValue);

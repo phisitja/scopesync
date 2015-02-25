@@ -42,6 +42,7 @@ namespace ScopeFXParameterDefinitions {
 		INPAD_CONFIGUID,
 		INPAD_OSCUID,
 		INPAD_PERFORMANCE_MODE,
+		INPAD_PRESET_NAME,
 		NUM_ASYNCINPADS
     };
 
@@ -95,6 +96,7 @@ namespace ScopeFXParameterDefinitions {
         { DTYPE_INT, FRAC_MIN, FRAC_MAX },      // INPAD_CONFIGUID
         { DTYPE_INT, FRAC_MIN, FRAC_MAX },      // INPAD_OSCUID
         { DTYPE_INT, FRAC_MIN, FRAC_MAX },      // INPAD_PERFORMANCE_MODE
+		{ DTYPE_STRING }						// INPAD_PRESET_NAME
     };
 
     static PadType outputPadTypes[NUM_ASYNCOUTPADS + NUM_SYNCOUTPADS] = {
@@ -261,6 +263,7 @@ namespace ScopeFXParameterDefinitions {
         { "cfg",  "configuration uid" },
         { "osc",  "osc uid" },
         { "pm",   "performance mode" },
+		{ "pn",   "preset name" },
     };
 
     static nameDesc outputNameDescs[NUM_ASYNCOUTPADS + NUM_SYNCOUTPADS] = {
