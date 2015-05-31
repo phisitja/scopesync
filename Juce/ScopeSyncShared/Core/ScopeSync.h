@@ -176,6 +176,27 @@ public:
     void           hideAddConfigurationWindow();
     void           actionListenerCallback(const String& message) override;
 
+    enum ManagedValues { performanceMode_mv, 
+					     oscUID_mv, 
+						 deviceType_mv, 
+						 showPatchWindow_mv, 
+						 showPresetWindow_mv, 
+						 monoEffect_mv,
+						 bypassEffect_mv,
+						 showShellPresetWindow_mv,
+						 voiceCount_mv,
+						 midiActivity_mv,
+						 midiChannel_mv,
+						 numManagedValues };
+
+	enum UnmanagedValues { configurationUID_mv, 
+					       performanceModeGlobalDisable_mv,
+						   numUnmanagedValues};
+
+    Array<int> currentValues[numManagedValues + numUnmanagedValues];
+	Array<int> newAsyncValues[numManagedValues + numUnmanagedValues];
+	Array<int> newScopeSyncValues[numManagedValues + numUnmanagedValues];
+	
 private:
 
     /* ========================== Initialisation ============================== */

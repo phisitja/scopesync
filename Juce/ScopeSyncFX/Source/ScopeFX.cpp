@@ -130,8 +130,6 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM /* lParam */)
 
 ScopeFX::ScopeFX() : Effect(&effectDescription)
 {
-    initValues();
-    
     if (ScopeSync::getNumScopeSyncInstances() == 0)
     {
 #ifdef _WIN32
@@ -142,6 +140,8 @@ ScopeFX::ScopeFX() : Effect(&effectDescription)
 
     scopeSync = new ScopeSync(this);
 
+    initValues();
+    
     DBG("ScopeFX::ScopeFX - Number of module instances: " + String(ScopeSync::getNumScopeSyncInstances()));
 
     startTimer(timerFrequency);
@@ -162,19 +162,17 @@ ScopeFX::~ScopeFX()
    
 void ScopeFX::initValues()
 {
-
-
-	positionX          = initPositionX;
+    positionX          = initPositionX;
 	positionY          = initPositionY;
     requestWindowShow  = false;
     windowShown        = false;
     windowHandlerDelay = 0;
     
-	for (int i = 0; i < numManagedValues; i++)
+	for (int i = 0; i < scopeSync->numManagedValues + scopeSync->numUnmanagedValues; i++)
 	{
-		currentValues[i]      = 0;
-		newScopeSyncValues[i] = 0;
-		newAsyncValues[i]     = 0;
+		scopeSync->currentValues[i]      = 0;
+		scopeSync->newScopeSyncValues[i] = 0;
+		scopeSync->newAsyncValues[i]     = 0;
 	}
 }
 
@@ -226,26 +224,26 @@ void ScopeFX::manageValuesForScopeSync()
 
 	scopeSync->getManagedValues(valuesFromScopeSync);
 
-	for (int i = 0; i < numManagedValues + numUnmanagedValues; i++)
+	for (int i = 0; i < scopeSync->numManagedValues + scopeSync->numUnmanagedValues; i++)
 	{
 		Identifier valueId = getIdForManagedValue(i);
 		
 		// Grab the current ScopeSync value
 		if (valueId.isValid())
-			newScopeSyncValues[i] = valuesFromScopeSync[i];
+			scopeSync->newScopeSyncValues[i] = valuesFromScopeSync[i];
 		
 		// If we've received a change from async, then override using that
-		if (newAsyncValues[i] != currentValues[i])
+		if (scopeSync->newAsyncValues[i] != scopeSync->currentValues[i])
 		{
-			DBG("ScopeFX::async - Change to ScopeSync value from async: " + String(valueId) + " -> " + String(newAsyncValues[i]));
+			DBG("ScopeFX::async - Change to ScopeSync value from async: " + String(valueId) + " -> " + String(scopeSync->newAsyncValues[i]));
 			
-			currentValues[i] = newAsyncValues[i];
-			newScopeSyncValues[i] = newAsyncValues[i];
+			scopeSync->currentValues[i] = scopeSync->newAsyncValues[i];
+			scopeSync->newScopeSyncValues[i] = scopeSync->newAsyncValues[i];
 
 			if (valueId.isValid())
-				scopeSync->setManagedValue(valueId, currentValues[i]);
-			else if (i == numManagedValues + performanceModeGlobalDisable)
-				scopeSync->setPerformanceModeGlobalDisable(currentValues[i] > 0);
+				scopeSync->setManagedValue(valueId, scopeSync->currentValues[i]);
+			else if (i == scopeSync->numManagedValues + ScopeSync::performanceModeGlobalDisable_mv)
+				scopeSync->setPerformanceModeGlobalDisable(scopeSync->currentValues[i] > 0);
 		}
 	}
 }
@@ -348,52 +346,52 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
     else
         requestWindowShow = true;
 
-	newAsyncValues[numManagedValues + configurationUID] = asyncIn[INPAD_CONFIGUID]->itg;
+	scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = asyncIn[INPAD_CONFIGUID]->itg;
 
 	if (scopeSync != nullptr)
 	{
-		if (newAsyncValues[numManagedValues + configurationUID] != currentValues[numManagedValues + configurationUID])
+		if (scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] != scopeSync->currentValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv])
 		{
-			scopeSync->changeConfiguration(newAsyncValues[numManagedValues + configurationUID]);
-			currentValues[numManagedValues + configurationUID] = newAsyncValues[numManagedValues + configurationUID];
+			scopeSync->changeConfiguration(scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv]);
+			scopeSync->currentValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv];
 		}
 
-		newScopeSyncValues[numManagedValues + configurationUID] = scopeSync->getConfigurationUID();
+		scopeSync->newScopeSyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = scopeSync->getConfigurationUID();
 	}
 
 #ifdef DEBUG
 	//String debugString;
 #endif //DEBUG
 
-	for (int i = 0; i < numManagedValues + numUnmanagedValues; i++)
+	for (int i = 0; i < scopeSync->numManagedValues + scopeSync->numUnmanagedValues; i++)
 	{
-		if (i == numManagedValues + configurationUID)
+		if (i == scopeSync->numManagedValues + ScopeSync::configurationUID_mv)
 			continue;
 
 		// Firstly grab the value coming in from the async input
-		newAsyncValues[i] = asyncIn[getInputIndexForValue(i)]->itg;
+		scopeSync->newAsyncValues[i] = asyncIn[getInputIndexForValue(i)]->itg;
 
 		// However, if we've had a change from ScopeSync, override
 		// using that
-		if (newScopeSyncValues[i] != currentValues[i])
+		if (scopeSync->newScopeSyncValues[i] != scopeSync->currentValues[i])
 		{
-			DBG("ScopeFX::async - Change to async value from ScopeSync: " + String(getIdForManagedValue(i)) + " -> " + String(newScopeSyncValues[i]));
-			currentValues[i] = newScopeSyncValues[i];
-			newAsyncValues[i] = newScopeSyncValues[i];
+			DBG("ScopeFX::async - Change to async value from ScopeSync: " + String(getIdForManagedValue(i)) + " -> " + String(scopeSync->newScopeSyncValues[i]));
+			scopeSync->currentValues[i] = scopeSync->newScopeSyncValues[i];
+			scopeSync->newAsyncValues[i] = scopeSync->newScopeSyncValues[i];
 		}
 
 		// Now set the appropriate output value where necessary
 		int outIdx = getOutputIndexForValue(i);
 
 		if (outIdx >= 0)
-			asyncOut[outIdx].itg = newAsyncValues[i];
-			asyncOut[outIdx].itg = newScopeSyncValues[i];
+			asyncOut[outIdx].itg = scopeSync->newAsyncValues[i];
+			asyncOut[outIdx].itg = scopeSync->newScopeSyncValues[i];
 
 #ifdef DEBUG
 		//debugString += String(i) + ":";
-		//debugString += String(currentValues[i]) + ",";
-		//debugString += String(newAsyncValues[i]) + ",";
-		//debugString += String(newScopeSyncValues[i]) + ";";
+		//debugString += String(scopeSync->currentValues[i]) + ",";
+		//debugString += String(scopeSync->newAsyncValues[i]) + ",";
+		//debugString += String(scopeSync->newScopeSyncValues[i]) + ";";
 #endif //DEBUG
 	}
 
@@ -403,7 +401,7 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
 	positionX = asyncIn[INPAD_X]->itg;
     positionY = asyncIn[INPAD_Y]->itg;
     
-	asyncOut[OUTPAD_CONFIGUID].itg          = newScopeSyncValues[numManagedValues + configurationUID];
+	asyncOut[OUTPAD_CONFIGUID].itg          = scopeSync->newScopeSyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv];
     asyncOut[OUTPAD_SHOW].itg               = windowShown ? 1 : 0;
     asyncOut[OUTPAD_X].itg                  = (scopeFXGUI != nullptr) ? scopeFXGUI->getScreenPosition().getX() : positionX;
     asyncOut[OUTPAD_Y].itg                  = (scopeFXGUI != nullptr) ? scopeFXGUI->getScreenPosition().getY() : positionY;

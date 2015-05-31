@@ -46,23 +46,6 @@ public:
     ScopeFX();
     ~ScopeFX();
 
-	enum ManagedValues { performanceMode, 
-					     oscUID, 
-						 deviceType, 
-						 showPatchWindow, 
-						 showPresetWindow, 
-						 monoEffect,
-						 bypassEffect,
-						 showShellPresetWindow,
-						 voiceCount,
-						 midiActivity,
-						 midiChannel,
-						 numManagedValues };
-
-	enum UnmanagedValues { configurationUID, 
-					       performanceModeGlobalDisable,
-						   numUnmanagedValues};
-
     // Process a set of Sync data coming in from Scope
     // and fill in outgoing streams as appropriate
     int  syncBlock (PadData** asyncIn,  PadData* syncIn,
@@ -113,10 +96,6 @@ private:
     int positionX; // Horizontal location of window
 	int positionY; // Vertical location of window
 
-	int currentValues[numManagedValues + numUnmanagedValues];
-	int newAsyncValues[numManagedValues + numUnmanagedValues];
-	int newScopeSyncValues[numManagedValues + numUnmanagedValues];
-	
 	bool requestWindowShow; // Flag to indicate that window should be shown
     bool windowShown;       // Flag to indicate that window is currently being shown
     
