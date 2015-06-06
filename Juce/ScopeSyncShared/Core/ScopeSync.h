@@ -193,9 +193,9 @@ public:
 					       performanceModeGlobalDisable_mv,
 						   numUnmanagedValues};
 
-    Array<int> currentValues[numManagedValues + numUnmanagedValues];
-	Array<int> newAsyncValues[numManagedValues + numUnmanagedValues];
-	Array<int> newScopeSyncValues[numManagedValues + numUnmanagedValues];
+    Array<int> currentValues;
+	Array<int> newAsyncValues;
+	Array<int> newScopeSyncValues;
 	
 private:
 

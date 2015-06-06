@@ -170,9 +170,9 @@ void ScopeFX::initValues()
     
 	for (int i = 0; i < scopeSync->numManagedValues + scopeSync->numUnmanagedValues; i++)
 	{
-		scopeSync->currentValues[i]      = 0;
-		scopeSync->newScopeSyncValues[i] = 0;
-		scopeSync->newAsyncValues[i]     = 0;
+		scopeSync->currentValues.set(i, 0);
+		scopeSync->newScopeSyncValues.set(i, 0);
+		scopeSync->newAsyncValues.set(i,0);
 	}
 }
 
@@ -230,15 +230,15 @@ void ScopeFX::manageValuesForScopeSync()
 		
 		// Grab the current ScopeSync value
 		if (valueId.isValid())
-			scopeSync->newScopeSyncValues[i] = valuesFromScopeSync[i];
+			scopeSync->newScopeSyncValues.set(i, valuesFromScopeSync[i]);
 		
 		// If we've received a change from async, then override using that
 		if (scopeSync->newAsyncValues[i] != scopeSync->currentValues[i])
 		{
 			DBG("ScopeFX::async - Change to ScopeSync value from async: " + String(valueId) + " -> " + String(scopeSync->newAsyncValues[i]));
 			
-			scopeSync->currentValues[i] = scopeSync->newAsyncValues[i];
-			scopeSync->newScopeSyncValues[i] = scopeSync->newAsyncValues[i];
+			scopeSync->currentValues.set(i, scopeSync->newAsyncValues[i]);
+			scopeSync->newScopeSyncValues.set(i, scopeSync->newAsyncValues[i]);
 
 			if (valueId.isValid())
 				scopeSync->setManagedValue(valueId, scopeSync->currentValues[i]);
@@ -346,17 +346,17 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
     else
         requestWindowShow = true;
 
-	scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = asyncIn[INPAD_CONFIGUID]->itg;
+	scopeSync->newAsyncValues.set(scopeSync->numManagedValues + ScopeSync::configurationUID_mv, asyncIn[INPAD_CONFIGUID]->itg);
 
 	if (scopeSync != nullptr)
 	{
 		if (scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] != scopeSync->currentValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv])
 		{
 			scopeSync->changeConfiguration(scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv]);
-			scopeSync->currentValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv];
+			scopeSync->currentValues.set(scopeSync->numManagedValues + ScopeSync::configurationUID_mv, scopeSync->newAsyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv]);
 		}
 
-		scopeSync->newScopeSyncValues[scopeSync->numManagedValues + ScopeSync::configurationUID_mv] = scopeSync->getConfigurationUID();
+		scopeSync->newScopeSyncValues.set(scopeSync->numManagedValues + ScopeSync::configurationUID_mv, scopeSync->getConfigurationUID());
 	}
 
 #ifdef DEBUG
@@ -369,15 +369,15 @@ int ScopeFX::async(PadData** asyncIn,  PadData* /*syncIn*/,
 			continue;
 
 		// Firstly grab the value coming in from the async input
-		scopeSync->newAsyncValues[i] = asyncIn[getInputIndexForValue(i)]->itg;
+		scopeSync->newAsyncValues.set(i, asyncIn[getInputIndexForValue(i)]->itg);
 
 		// However, if we've had a change from ScopeSync, override
 		// using that
 		if (scopeSync->newScopeSyncValues[i] != scopeSync->currentValues[i])
 		{
 			DBG("ScopeFX::async - Change to async value from ScopeSync: " + String(getIdForManagedValue(i)) + " -> " + String(scopeSync->newScopeSyncValues[i]));
-			scopeSync->currentValues[i] = scopeSync->newScopeSyncValues[i];
-			scopeSync->newAsyncValues[i] = scopeSync->newScopeSyncValues[i];
+			scopeSync->currentValues.set(i, scopeSync->newScopeSyncValues[i]);
+			scopeSync->newAsyncValues.set(i, scopeSync->newScopeSyncValues[i]);
 		}
 
 		// Now set the appropriate output value where necessary
